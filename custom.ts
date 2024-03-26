@@ -250,7 +250,7 @@ namespace custom {
     export function dOutputModule(adom: DOutputModule, index: pinAddr, percentage: number): void {
         mcu_config();
         i2cwrite(msg_Addr.Mcu_addr, index, deviceType.Mcu_aoutput_addr); //往Px端口地址写器件类型
-        i2cwrite(msg_Addr.Mcu_addr, index * 8 + 8, percentage);//写入控制参数
+        i2cwrite(msg_Addr.Mcu_addr, index * 8 + 8, Math.floor(percentage));//写入控制参数
     }
 
     /**
@@ -288,7 +288,7 @@ namespace custom {
     //% value.min=0 value.max=225
     export function Servo(index: enServo, value: number): void {
         mcu_config();
-        let angle_value = Math.trunc(value * 0.689 + 86);
+        let angle_value = Math.trunc(Math.floor(value) * 0.689 + 86);
         i2cwrite(msg_Addr.Mcu_addr, index, angle_value);
     }
 
@@ -304,26 +304,27 @@ namespace custom {
     //% index.fieldEditor="gridpicker" index.fieldOptions.columns=2
     export function MotorRun(index: enMotors, speed: number): void {
         mcu_config();
-        if (speed >= 0) {
+        let speed_int = Math.floor(speed);
+        if (speed_int >= 0) {
             if (index == enMotors.MALL) {
-                i2cwrite(msg_Addr.Mcu_addr, enMotors.M1, speed)
-                i2cwrite(msg_Addr.Mcu_addr, enMotors.M2, speed)
-                i2cwrite(msg_Addr.Mcu_addr, enMotors.M3, speed)
-                i2cwrite(msg_Addr.Mcu_addr, enMotors.M4, speed)
+                i2cwrite(msg_Addr.Mcu_addr, enMotors.M1, speed_int)
+                i2cwrite(msg_Addr.Mcu_addr, enMotors.M2, speed_int)
+                i2cwrite(msg_Addr.Mcu_addr, enMotors.M3, speed_int)
+                i2cwrite(msg_Addr.Mcu_addr, enMotors.M4, speed_int)
             }
             else {
-                i2cwrite(msg_Addr.Mcu_addr, index, speed)
+                i2cwrite(msg_Addr.Mcu_addr, index, speed_int)
             }
         }
         else {
             if (index == enMotors.MALL) {
-                i2cwrite(msg_Addr.Mcu_addr, enMotors.M1, -speed + 100)
-                i2cwrite(msg_Addr.Mcu_addr, enMotors.M2, -speed + 100)
-                i2cwrite(msg_Addr.Mcu_addr, enMotors.M3, -speed + 100)
-                i2cwrite(msg_Addr.Mcu_addr, enMotors.M4, -speed + 100)
+                i2cwrite(msg_Addr.Mcu_addr, enMotors.M1, -speed_int + 100)
+                i2cwrite(msg_Addr.Mcu_addr, enMotors.M2, -speed_int + 100)
+                i2cwrite(msg_Addr.Mcu_addr, enMotors.M3, -speed_int + 100)
+                i2cwrite(msg_Addr.Mcu_addr, enMotors.M4, -speed_int + 100)
             }
             else {
-                i2cwrite(msg_Addr.Mcu_addr, index, -speed + 100);
+                i2cwrite(msg_Addr.Mcu_addr, index, -speed_int + 100);
             }
         }
     }
@@ -349,6 +350,58 @@ namespace custom {
         }
     }
 
+    //% blockId="YFSENSORS_TM650_SHOW_NUMBER1" weight=92 blockGap=10
+    //% block="数码管 显示数字 %num"
+    export function showNumber1(num: number) {
+        if (display_init) {
+            on();
+            clear();
+            display_init = false
+        }
+
+        if (isinteger(num)) {
+            if (num < 0) {
+                dat(0, 0x40) // '-'
+                num = -num
+            }
+            else
+                digit(0, Math.idiv(num, 1000) % 10)
+            digit(3, num % 10)
+            digit(2, Math.idiv(num, 10) % 10)
+            digit(1, Math.idiv(num, 100) % 10)
+        }
+        else {
+
+            num = Math.round(num * 100)
+            num = Math.floor(num) / 100
+
+            let floatstr = num.toString()
+            let index = 3
+
+            if (floatstr.includes('.')) {
+                if (floatstr[floatstr.length - 2] == '.') {
+                    index = 2
+                    num = num * 10
+                }
+                else {
+                    index = 1
+                    num = Math.floor(num * 100)
+                }
+            }
+
+            if (num < 0) {
+                dat(0, 0x40) // '-'
+                num = -num
+            }
+            else
+                digit(0, Math.idiv(num, 1000) % 10)
+            digit(3, num % 10)
+            digit(2, Math.idiv(num, 10) % 10)
+            digit(1, Math.idiv(num, 100) % 10)
+
+            showDpAt(index, enDisplayShow.Display)
+        }
+    }
 
     /**
     * Read the Button Module.
@@ -364,7 +417,7 @@ namespace custom {
         mcu_config();
         i2cwrite(msg_Addr.Mcu_addr, index, deviceType.Mcu_dinput_1p_addr); //往Px端口地址写器件类型
         pins.i2cWriteNumber(msg_Addr.Mcu_addr, index * 8 + 8, NumberFormat.UInt8LE, false);
-        if (pins.i2cReadNumber(msg_Addr.Mcu_addr, NumberFormat.UInt8LE, false) == 0) {
+        if (pins.i2cReadNumber(msg_Addr.Mcu_addr, NumberFormat.UInt8LE, false) == value) {
             return true;
         }
         else {
@@ -719,9 +772,9 @@ namespace custom {
     //% subcategory="数码管"
     //% weight=40 blockGap=8
     //% block="数码管 |在第 %bit|位，显示数字 %num"
-    //% num.max=15 num.min=0
     //% bit.max=3 bit.min=0
-    export function digit(num: number, bit: number) {
+    //% num.max=15 num.min=0
+    export function digit(bit: number, num: number) {
         if (display_init) {
             on();
             clear();
@@ -758,10 +811,10 @@ namespace custom {
                 num = -num
             }
             else
-                digit(Math.idiv(num, 1000) % 10, 0)
-            digit(num % 10, 3)
-            digit(Math.idiv(num, 10) % 10, 2)
-            digit(Math.idiv(num, 100) % 10, 1)
+                digit(0, Math.idiv(num, 1000) % 10)
+            digit(3, num % 10)
+            digit(2, Math.idiv(num, 10) % 10)
+            digit(1, Math.idiv(num, 100) % 10)
         }
         else {
 
@@ -787,10 +840,10 @@ namespace custom {
                 num = -num
             }
             else
-                digit(Math.idiv(num, 1000) % 10, 0)
-            digit(num % 10, 3)
-            digit(Math.idiv(num, 10) % 10, 2)
-            digit(Math.idiv(num, 100) % 10, 1)
+                digit(0, Math.idiv(num, 1000) % 10)
+            digit(3, num % 10)
+            digit(2, Math.idiv(num, 10) % 10)
+            digit(1, Math.idiv(num, 100) % 10)
 
             showDpAt(index, enDisplayShow.Display)
         }
@@ -815,10 +868,10 @@ namespace custom {
             num = -num
         }
         else
-            digit((num >> 12) % 16, 0)
-        digit(num % 16, 3)
-        digit((num >> 4) % 16, 2)
-        digit((num >> 8) % 16, 1)
+            digit(0, (num >> 12) % 16)
+        digit(3, num % 16)
+        digit(2, (num >> 4) % 16)
+        digit(1, (num >> 8) % 16)
     }
 
     /**
