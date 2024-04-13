@@ -403,6 +403,7 @@ namespace custom {
         }
     }
 
+    let button_init = false;
     /**
     * Read the Button Module.
     * @param dimPin pin. eg: pinAddr.P1
@@ -415,7 +416,13 @@ namespace custom {
     //% value.fieldEditor="gridpicker" value.fieldOptions.columns=2
     export function Button(index: pinAddr, value: enButton): boolean {
         mcu_config();
-        i2cwrite(msg_Addr.Mcu_addr, index, deviceType.Mcu_dinput_1p_addr); //往Px端口地址写器件类型
+        if (!button_init) {
+            i2cwrite(msg_Addr.Mcu_addr, index, deviceType.Mcu_dinput_1p_addr); //往Px端口地址写器件类型
+            pins.i2cWriteNumber(msg_Addr.Mcu_addr, index * 8 + 8, NumberFormat.UInt8LE, false);
+            pins.i2cReadNumber(msg_Addr.Mcu_addr, NumberFormat.UInt8LE, false)
+            basic.pause(10)
+            button_init = true;
+        }
         pins.i2cWriteNumber(msg_Addr.Mcu_addr, index * 8 + 8, NumberFormat.UInt8LE, false);
         if (pins.i2cReadNumber(msg_Addr.Mcu_addr, NumberFormat.UInt8LE, false) == value) {
             return true;
