@@ -201,6 +201,13 @@ namespace custom {
         Button_D = 3,
     }
 
+    export enum enScore {
+        //% block="前"
+        Score_front = 0,
+        //% block="后"
+        Score_next = 1,
+    }
+
     /**
     * @param index
     */
@@ -899,6 +906,45 @@ namespace custom {
 
         if (show == enDisplayShow.Display) dat(bit, dbuf[bit % 4] | 0x80)
         else dat(bit, dbuf[bit % 4] & 0x7F)
+    }
+
+    /**
+    * 只能显示0-99以内的数，不能显示小数和负数
+    */
+    //% subcategory="数码管"
+    //% weight=34 blockGap=8
+    //% block="数码管 显示| %bit |比分 %num"
+    //% num.max=99 num.min=0
+    export function setScore(bit: enScore, num: number) {
+        if (display_init) {
+            on();
+            clear();
+            display_init = false;
+
+        }
+
+        showDpAt(1, enDisplayShow.Display)
+
+        if (bit == enScore.Score_front) {
+            if (num < 0) {
+                dat(0, 0xC0) // '-.'
+                num = -num
+            }
+            else {
+                digit(0, Math.idiv(num, 10) % 10)
+                showDpAt(0, enDisplayShow.Display)
+            }
+            digit(1, num % 10)
+        }
+        else {
+            if (num < 0) {
+                dat(2, 0x40) // '-'
+                num = -num
+            }
+            else
+                digit(2, Math.idiv(num, 10) % 10)
+            digit(3, num % 10)
+        }
     }
 
     /**
