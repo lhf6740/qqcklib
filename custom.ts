@@ -200,13 +200,13 @@ namespace custom {
         //% block="D"
         Button_D = 3,
     }
-
     export enum enScore {
         //% block="前"
         Score_front = 0,
         //% block="后"
         Score_next = 1,
     }
+
 
     /**
     * @param index
@@ -410,7 +410,7 @@ namespace custom {
         }
     }
 
-    let button_init = false;
+    let old_button_Px = 0;
     /**
     * Read the Button Module.
     * @param dimPin pin. eg: pinAddr.P1
@@ -423,13 +423,13 @@ namespace custom {
     //% value.fieldEditor="gridpicker" value.fieldOptions.columns=2
     export function Button(index: pinAddr, value: enButton): boolean {
         mcu_config();
-        if (!button_init) {
+
+        if (old_button_Px != index) {
             i2cwrite(msg_Addr.Mcu_addr, index, deviceType.Mcu_dinput_1p_addr); //往Px端口地址写器件类型
-            pins.i2cWriteNumber(msg_Addr.Mcu_addr, index * 8 + 8, NumberFormat.UInt8LE, false);
-            pins.i2cReadNumber(msg_Addr.Mcu_addr, NumberFormat.UInt8LE, false)
             basic.pause(10)
-            button_init = true;
+            old_button_Px = index;
         }
+
         pins.i2cWriteNumber(msg_Addr.Mcu_addr, index * 8 + 8, NumberFormat.UInt8LE, false);
         if (pins.i2cReadNumber(msg_Addr.Mcu_addr, NumberFormat.UInt8LE, false) == value) {
             return true;
@@ -439,6 +439,7 @@ namespace custom {
         }
     }
 
+    let old_IR_Px = 0;
     //% group="输入"
     //% block="红外传感器 |%value_DNum|检测到 %value|？"
     //% weight=87 blockGap=10
@@ -446,7 +447,13 @@ namespace custom {
     //% value.fieldEditor="gridpicker" value.fieldOptions.columns=2
     export function IR(index: pinAddr, value: enObstacle): boolean {
         mcu_config();
-        i2cwrite(msg_Addr.Mcu_addr, index, deviceType.Mcu_dinput_1p_addr); //往Px端口地址写器件类型
+
+        if (old_IR_Px != index) {
+            i2cwrite(msg_Addr.Mcu_addr, index, deviceType.Mcu_dinput_1p_addr); //往Px端口地址写器件类型
+            basic.pause(10)
+            old_IR_Px = index;
+        }
+
         pins.i2cWriteNumber(msg_Addr.Mcu_addr, index * 8 + 8, NumberFormat.UInt8LE, false);
         if (pins.i2cReadNumber(msg_Addr.Mcu_addr, NumberFormat.UInt8LE, false) == value) {
             return true;
@@ -456,6 +463,7 @@ namespace custom {
         }
     }
 
+    let old_PIR_Px = 0;
     //% group="输入"
     //% block="人体红外传感器 |%value_DNum|检测到 %value|？"
     //% weight=86 blockGap=10
@@ -463,7 +471,13 @@ namespace custom {
     //% value.fieldEditor="gridpicker" value.fieldOptions.columns=2
     export function PIR(index: pinAddr, value: enPIR): boolean {
         mcu_config();
-        i2cwrite(msg_Addr.Mcu_addr, index, deviceType.Mcu_dinput_1p_addr); //往Px端口地址写器件类型
+
+        if (old_PIR_Px != index) {
+            i2cwrite(msg_Addr.Mcu_addr, index, deviceType.Mcu_dinput_1p_addr); //往Px端口地址写器件类型
+            basic.pause(10)
+            old_PIR_Px = index;
+        }
+
         pins.i2cWriteNumber(msg_Addr.Mcu_addr, index * 8 + 8, NumberFormat.UInt8LE, false);
         if (pins.i2cReadNumber(msg_Addr.Mcu_addr, NumberFormat.UInt8LE, false) == value) {
             return true;
@@ -909,8 +923,8 @@ namespace custom {
     }
 
     /**
-    * 只能显示0-99以内的数，不能显示小数和负数
-    */
+     * 只能显示0-99以内的数，不能显示小数和负数
+     */
     //% subcategory="数码管"
     //% weight=34 blockGap=8
     //% block="数码管 显示| %bit |比分 %num"
@@ -947,10 +961,11 @@ namespace custom {
         }
     }
 
+
     /**
-     * set display intensity
-     * @param dat is intensity of the display, eg: 3
-     */
+ * set display intensity
+ * @param dat is intensity of the display, eg: 3
+ */
     //% subcategory="数码管"
     //% weight=35 blockGap=8
     //% block="数码管 设置显示亮度 %dat"
@@ -985,7 +1000,7 @@ namespace custom {
     //% RFC.min=1 RFC.max=127
     export function set_JdyRFC(RFC: number) {
         mcu_config();
-        i2cwrite(msg_Addr.Mcu_addr, RFC, wireless_Addr.JdyRFC); //写入无线模块的频道
+        i2cwrite(msg_Addr.Mcu_addr, wireless_Addr.JdyRFC, RFC); //写入无线模块的频道
     }
 
     //% block="手柄 摇杆状态为|%value|？"
@@ -1088,6 +1103,34 @@ namespace custom {
             }
         }
     }
+
+
+    //% block="手柄 按键|%index|？"
+    //% subcategory="无线手柄"
+    //% weight=60 blockGap=10
+    //% index.fieldEditor="gridpicker" index.fieldOptions.columns=2
+    export function JdyButton1(index: enJdyRocker): number {
+        mcu_config();
+
+        if (index == enJdyRocker.Button_A) {
+            pins.i2cWriteNumber(msg_Addr.Mcu_addr, wireless_Addr.Jdy_A, NumberFormat.UInt8LE, false);
+            return pins.i2cReadNumber(msg_Addr.Mcu_addr, NumberFormat.UInt8LE, false);
+        }
+        else if (index == enJdyRocker.Button_B) {
+            pins.i2cWriteNumber(msg_Addr.Mcu_addr, wireless_Addr.Jdy_B, NumberFormat.UInt8LE, false);
+            return pins.i2cReadNumber(msg_Addr.Mcu_addr, NumberFormat.UInt8LE, false)
+        }
+        else if (index == enJdyRocker.Button_C) {
+            pins.i2cWriteNumber(msg_Addr.Mcu_addr, wireless_Addr.Jdy_C, NumberFormat.UInt8LE, false);
+            return pins.i2cReadNumber(msg_Addr.Mcu_addr, NumberFormat.UInt8LE, false)
+        }
+        else {
+            pins.i2cWriteNumber(msg_Addr.Mcu_addr, wireless_Addr.Jdy_D, NumberFormat.UInt8LE, false);
+            return pins.i2cReadNumber(msg_Addr.Mcu_addr, NumberFormat.UInt8LE, false)
+        }
+    }
+
+
 
     //% block="手柄 摇杆|%axis|的值"
     //% subcategory="无线手柄"
